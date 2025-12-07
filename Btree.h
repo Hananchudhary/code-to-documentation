@@ -28,7 +28,7 @@ void traverse(){
         }
         cout << this->keys[i++] << " ";
     }
-    if(!this->leaf)
+    if(!this->leaf && this->child[i])
         this->child[i]->traverse();
 }
 BTreeNode<T>* search(const T& k){
@@ -60,56 +60,70 @@ void insertNonFull(const T& k){
             this->child[i] = this->child[i-1];
         }
         this->keys[idx] = k;
+        this->n++;
     }
     else if(this->child[idx]) {
         if(this->child[idx]->n == (2*t - 1)){
-            this->splitChild(idx, this);
+            this->splitChild(idx);
+            if(k > this->keys[idx]) 
+                idx++;
         }
-        if(k > this->child[idx]) 
-            idx++;
         this->child[idx]->insertNonFull(k);
     }
 }
-void splitChild(int idx, BTreeNode<T>* y){
-    for(int i = (2*t - 1);i > idx;i--){
-        y->child[i] = y->child[i-1];
+void splitChild(int idx){
+    BTreeNode<T>* x = this->child[idx];
+    BTreeNode<T>* z = new BTreeNode<T>(t);
+    z->leaf = x->leaf;
+    for(int i = this->n;i>idx;i--){
+        this->keys[i] = this->keys[i-1];
+        this->child[i] = this->child[i-1];
     }
-    if(y->child[idx+1]) delete y->child[idx+1];
-    y->child[idx+1] = new BTreeNode<T>(y->t, false);
-    y->child[idx+1]->leaf = y->child[idx]->leaf;
-    while(y->child[idx]->n > y->t){
-        int i = y->child[idx+1]->findKey(y->keys[idx]);
-        y->child[idx+1]->keys[i] = y->keys[idx];
-        y->keys[idx] = y->child[idx]->keys[y->child[idx]->n-1];
-        y->child[idx]->keys[y->child[idx]->n-1] = 0;
-        y->child[idx+1]->child[i] = y->child[idx]->child[y->child[idx]->n-1];
-        y->chilf[idx]->n--;
-        y->child->[idx+1]->n++;
+    for(int i = 0,j = this->t+1;j < x->n;j++, i++){
+        z->keys[i] = x->keys[j];
+        z->child[i] = x->child[j+1];
+        x->child[j] = nullptr;
+        x->keys[j] = 0;
+        z->n++;
     }
+    x->n = x->n - z->n;
+    this->keys[idx] = x->keys[this->t];
+    x->keys[this->t] = 0;
+    x->n--;
+    this->child[idx+1] = z;
+    this->n++;
 }
 
 
 int findKey(const T& k){
-    if(this->n == 0 || k < this->keys[this->n] || k > this->keys[this->n-1])
+    if(this->n == 0 || k < this->keys[0])
+        return 0;
+    if(k > this->keys[this->n-1])
         return this->n;
+    if(k == this->keys[this->n - 1])
+        return this->n-1;
     for(int i = 0;i<this->n - 1;i++){
-        if(k > this->keys[i] && k < this->keys[i+1])
+        if(k == this->keys[i])
             return i;
+        if(k > this->keys[i] && k < this->keys[i+1])
+            return i+1;
     }
     return -1;
 }
 void remove(const T& k){
     int idx = this->findKey(k);
+    if(!this->child[idx])
+        return;
     int i = this->child[idx]->findKey(k);
-    if(this->child[idx]->keys[i] == k){
-        if(this->child[idx]->leaf){
+    if(i != -1 && this->child[idx]->keys[i] == k){
+        if(this->child[idx] && this->child[idx]->leaf){
             if(this->child[idx]->n <= t){
                 this->fill(idx);
                 i = this->child[idx]->findKey(k);
             }
             this->child[idx]->removeFromLeaf(i);
         }
-        else{
+        else if(this->child[idx]){
             this->child[idx]->removeFromNonLeaf(i);
         }
     }
@@ -117,7 +131,7 @@ void remove(const T& k){
         this->child[idx]->remove(k);
 }
 void removeFromLeaf(int idx){
-    for(int i = idx;i<this->n - 1;i++){
+    for(int i = idx;i<this->n-1;i++){
         this->keys[i] = this->keys[i+1];
     }
     this->keys[--this->n] = 0;
@@ -146,13 +160,13 @@ int getSucc(int idx){
     return prv->keys[0];
 }
 void fill(int idx){
-    while(this->child[idx-1] && this->child[idx-1]->n > this->t && this->child[idx]->n < t){
+    while(idx > 0 && this->child[idx-1] && this->child[idx-1]->n > this->t && this->child[idx]->n < t){
         this->borrowFromPrev(idx);
     }
-    while(this->child[idx+1] && this->child[idx+1]->n > this->t && this->child[idx]->n < t){
+    while(idx < (2*t) && this->child[idx+1] && this->child[idx+1]->n > this->t && this->child[idx]->n < t){
         this->borrowFromNext(idx);
     }
-    if(this->child[idx]->n < t){
+    if(this->child[idx]->n <= t){
         merge(idx);
     }
 }
@@ -190,22 +204,24 @@ void merge(int idx){
     for(int i = 0;i<this->child[idx]->n;i++){
         temp->keys[j] = this->child[idx]->keys[i];
         temp->child[j++] = this->child[idx]->child[i];
-        this->n++;
+        temp->n++;
     }
     temp->keys[j++] = this->keys[idx];
-    for(int i = 0;i<this->child[idx+1]->n;i++){
+    temp->n++;
+    for(int i = 0;i<this->child[idx+1]->n-1;i++){
         temp->keys[j] = this->child[idx+1]->keys[i];
         temp->child[j++] = this->child[idx+1]->child[i];
-        this->n++;
+        temp->n++;
     }
+    this->keys[idx] = this->child[idx+1]->keys[this->child[idx+1]->n-1];
     delete this->child[idx+1];
+    this->child[idx+1] = nullptr;
     delete this->child[idx];
     this->child[idx] = temp;
     for(int i = this->n-1;i > idx;i--){
         this->keys[i - 1] = this->keys[i];
         this->child[i] = this->child[i+1];
     }
-    this->n--;
 }
 };
 
@@ -241,13 +257,14 @@ BTreeNode<T>* search(const T& k) {
 void insert(const T& k){
     if(!root){
         root = new BTreeNode<T>(t);
-        root->insertNonFull(k);
+        root->keys[0] = k;
+        root->n++;
         return;
     }
-    if(root->n == (2*t - 1)){
+    if(root->n == (2*t)){
         BTreeNode<T>* s = new BTreeNode<T>(t, false);
         s->child[0] = root;
-        s->splitChild(0, s);
+        s->splitChild(0);
         root = s;
         int idx = 0;
         if(k > root->keys[0]) idx++;
@@ -269,7 +286,9 @@ void remove(const T& k){
             root->removeFromNonLeaf(idx);
         }
     }
-    root->remove(k);
+    else{
+        root->remove(k);
+    }
     if(root->n == 0){
         BTreeNode<T>* tmp = root;
         if(root->leaf){
@@ -278,7 +297,7 @@ void remove(const T& k){
         }
         else{
             root = root->child[0];
-            delete temp;
+            delete tmp;
         }
     }
 }
