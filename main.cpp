@@ -2,6 +2,7 @@
 #include<vector>
 #include<string>
 #include<sstream>
+#include<cstdint>
 #include<algorithm>
 #include"Btree.h"
 using namespace std;
@@ -333,58 +334,6 @@ public:
         
     }
 };
-int main() {
-    BTree<int> bt(3);   // Minimum degree t = 3 (B-Tree of order 6)
-
-    cout << "Inserting keys...\n";
-    int values[] = {10, 20, 5, 6, 12, 30, 7, 17};
-    int n = sizeof(values) / sizeof(values[0]);
-
-    for(int i = 0; i < n; i++){
-        bt.insert(values[i]);
-        cout << "Inserted: " << values[i] << " | Current tree: ";
-        bt.traverse();
-    }
-
-    // ------------------------------
-    // SEARCH TEST
-    // ------------------------------
-    cout << "\nSearching for 6: ";
-    auto s1 = bt.search(6);
-    cout << (s1 ? "FOUND\n" : "NOT FOUND\n");
-
-    cout << "Searching for 15: ";
-    auto s2 = bt.search(15);
-    cout << (s2 ? "FOUND\n" : "NOT FOUND\n");
-
-    // ------------------------------
-    // REMOVAL TEST
-    // ------------------------------
-    cout << "\nRemoving 6...\n";
-    bt.remove(6);
-    bt.traverse();
-
-    cout << "Removing 13 (not present)...\n";
-    bt.remove(13);
-    bt.traverse();
-
-    cout << "Removing 7...\n";
-    bt.remove(7);
-    bt.traverse();
-
-    cout << "Removing 4 (not present)...\n";
-    bt.remove(4);
-    bt.traverse();
-
-    cout << "Removing 10...\n";
-    bt.remove(10);
-    bt.traverse();
-
-    cout << "Final tree: ";
-    bt.traverse();
-
-    return 0;
-}
 
 int main1(){
     string code = R"(#include<iostream>
