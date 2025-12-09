@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DISKMANAGER_H
+
+#define DISKMANAGER_H
 #include<iostream>
 #include<vector>
 #include<fstream>
@@ -9,34 +11,36 @@ template <typename T>
 class DiskManager {
 private:
     fstream file;
-    char bitmap[MAX_BLOCKS / 8]; // 1 bit per block
+    char* bitmap;
+    int M;
     void persistBitmap() {
         file.seekp(0, ios::beg);
         file.write(bitmap, sizeof(bitmap));
         file.flush();
     }
 public:
-    DiskManager(string filename) {
+    DiskManager(string filename, const int MAX): bitmap{new char[MAX/8]}, M{MAX} {
         file.open(filename.c_str(), ios::in | ios::out | ios::binary);
         if (!file) {
-            file.open(DB_FILE, ios::out | ios::binary);
-            for (int i = 0; i < MAX_BLOCKS / 8; i++) bitmap[i] = 0;
+            file.open(filename, ios::out | ios::binary);
+            for (int i = 0; i < M / 8; i++) bitmap[i] = 0;
             file.write((char*)bitmap, sizeof(bitmap));
             file.close();
-            file.open(DB_FILE, ios::in | ios::out | ios::binary);
+            file.open(filename, ios::in | ios::out | ios::binary);
         }
         file.seekg(0, ios::beg);
         file.read((char*)bitmap, sizeof(bitmap));
     }
 
     ~DiskManager() {
+        delete bitmap;
         file.seekp(0, ios::beg);
         file.write((char*)bitmap, sizeof(bitmap));
         file.close();
     }
 
     int allocateBlock() {
-        for(int i = 0;i<MAX_BLOCKS/8;i++){
+        for(int i = 0;i<M/8;i++){
             unsigned char k = ~bitmap[i];
             if(k != 0x00){
                 unsigned char it = 0x01;
@@ -58,6 +62,18 @@ public:
         }
         return -1; 
     }
+    uint32_t getFirstUsedBlock() {
+        for (uint32_t i = 0; i < M / 8; i++) {
+            if (bitmap[i] != 0) {  // This byte has at least one used block
+                for (int bit = 0; bit < 8; bit++) {
+                    if (bitmap[i] & (1 << bit)) {
+                        return i * 8 + bit;
+                    }
+                }
+            }
+        }
+        return -1; // No used block found
+    }
     void freeBlock(int idx){
         unsigned char k = 1 << (idx%8);
         k = ~k;
@@ -65,15 +81,16 @@ public:
     }
     T readNode(int index) {
         T node;
-        file.seekg(sizeof(T) * index);
-        file.read(reinterpret_cast<char*>(&node), sizeof(T));
+        file.seekg(sizeof(T) * index + (sizeof(bitmap)*(M/8)));
+        node.readFromFile(sizeof(T) * index + (sizeof(bitmap)*(M/8) + 1), file);
+        // file.read(reinterpret_cast<char*>(&node), sizeof(T));
         return node;
     }
 
     void writeNode(int index, T& node) {
-        const int BITMAP_SIZE = MAX_BLOCKS / 8;
-
-        file.seekg(BITMAP_SIZE + sizeof(T) * index);
-        file.seekp(BITMAP_SIZE + sizeof(T) * index);
+        file.seekp(sizeof(T) * index + (sizeof(bitmap)*(M/8)));
+        node.writeToFile(sizeof(T) * index + (sizeof(bitmap)*(M/8) + 1), file);
+        // file.write(reinterpret_cast<const char*>(&node), sizeof(T));
     }
 };
+#endif
