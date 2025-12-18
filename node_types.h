@@ -5,7 +5,7 @@
 #include<memory.h>
 #include"config.h"
 using namespace std;
-struct User {        // Fixed size for B-tree
+struct User {     
     char userName[MAX_USERNAME_LEN+1];
     char password[MAX_USERNAME_LEN+1];
     uint8_t is_active;
@@ -22,7 +22,6 @@ struct User {        // Fixed size for B-tree
     }
 };
 
-// File entry structure
 struct FileEntry {
     char name[MAX_FILENAME_LEN+1];
     char userName[MAX_USERNAME_LEN+1];
@@ -43,5 +42,63 @@ struct BlockHdr {
     uint32_t size;      // Size of data in this block
     
     BlockHdr() : nxt(0), isValid(1), size(BLOCK_SIZE - sizeof(BlockHdr)) {}
+};
+struct Node{
+    int line;
+    string name;
+    string type;
+    Node* child;
+    Node(int l = 0, string t = "Node"):line{l}, name{"unknown"}, type{t}, child{nullptr}{} 
+};
+
+struct val{
+    string dataType;
+    string val;
+    string name;
+};
+
+struct variable : val{
+    string scope;
+    string MemType;
+};
+
+struct Declaration: Node{
+    vector<variable> vars; 
+    Declaration(int l):Node(l, "Declaration"){
+        name = "Declaration";
+    }
+};
+
+struct Expression : Node{
+    val* leftOpr;
+    string operation;
+    val* right;
+    Expression(int l):Node(l, "Expression"){
+        name = "Expression";
+        leftOpr = nullptr;
+        operation = "";
+        right = nullptr;
+    }
+};
+
+struct FunctionDef: Node{
+    string returnType;
+    string funcName;
+    vector<val*> params;
+    Node* body;
+    FunctionDef(int l):Node(l, "FunctionDef"){
+        name = "FunctionDef";
+        body = nullptr;
+        funcName = "main";
+    }
+};
+
+struct FunctionBody: Node{
+    Node* root;
+    vector<Node*> statements;
+    FunctionBody(int l):Node(l, "FunctionBody"){
+        name = "FunctionBody";
+        root = nullptr;
+    }
 };
 #endif

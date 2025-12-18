@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <vector>
 #include <string>
@@ -33,22 +34,11 @@ class UserDBManager{
         }
         return 0;
     }
-    User getUser(const string& username) {
+    bool getUser(const string& username, User& u) {
         uint32_t idx = myHash(username);
-        if (!user_idx.search(idx)) throw runtime_error("User not found");
-        User u;
+        if (!user_idx.search(idx)) return false;
         file.seekg(idx * sizeof(User) + MAX_USERS, ios::beg);
         file.read(reinterpret_cast<char*>(&u), sizeof(User));
-        return u;
+        return true;
     }
 };
-int main(){
-    {
-        UserDBManager ud;
-        ud.addUser("hanan", "hanan");
-    }
-    UserDBManager ud;
-    User u = ud.getUser("hanan");
-    cout << u.userName << endl;
-    return 0;
-}

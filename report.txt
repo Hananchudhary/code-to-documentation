@@ -1,0 +1,8 @@
+Implemented things:
+- Basic skeleton of parsing (Declaration, Function Definition, Expression)
+- Users database
+Things to Implement:
+- Function Call Parser, IF Parser, Loop Parser (which will be based on simple parsings)
+- FileEntries Database(Same as users Database)
+- FrontEnd 
+- Socket based server on cloud

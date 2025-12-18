@@ -30,6 +30,7 @@ public:
         }
         file.seekg(0, ios::beg);
         file.read((char*)bitmap, sizeof(bitmap));
+        cout << "";
     }
 
     ~DiskManager() {
@@ -40,34 +41,38 @@ public:
     }
 
     int allocateBlock() {
-        for(int i = 0;i<M/8;i++){
-            unsigned char k = ~bitmap[i];
-            if(k != 0x00){
-                unsigned char it = 0x01;
-                while(it != 0x00){
-                    unsigned char ch = k & it;
-                    if(ch != 0x00){
-                        it = ch;
-                        break;
+        for (int i = 0; i < M/8; i++) {
+
+            unsigned char freeMask = ~bitmap[i]; // 1 = free, 0 = used
+
+            if (freeMask != 0x00) {
+
+                // scan bits from LSB → MSB
+                for (int bit = 0; bit < 8; bit++) {
+
+                    if (freeMask & (1 << bit)) {  // free bit found
+
+                        int idx = i * 8 + bit;
+
+                        // mark bit used
+                        bitmap[i] |= (1 << bit);
+
+                        return idx;
                     }
-                    it <<= 1;
                 }
-                int bit = 0;
-                unsigned char temp = it;
-                while (temp >>= 1) bit++;
-                int idx = i * 8 + bit;
-                bitmap[idx/8] |= (1 << (idx%8));
-                return idx;
             }
         }
-        return -1; 
+
+        return -1; // no free blocks
     }
+
     uint32_t getFirstUsedBlock() {
         for (uint32_t i = 0; i < M / 8; i++) {
             if (bitmap[i] != 0) {  // This byte has at least one used block
                 for (int bit = 0; bit < 8; bit++) {
                     if (bitmap[i] & (1 << bit)) {
-                        return i * 8 + bit;
+                        int b = 7-bit;
+                        return i * 8 + b;
                     }
                 }
             }
@@ -82,14 +87,14 @@ public:
     T readNode(int index) {
         T node;
         file.seekg(sizeof(T) * index + (sizeof(bitmap)*(M/8)));
-        node.readFromFile(sizeof(T) * index + (sizeof(bitmap)*(M/8) + 1), file);
+        node.readFromFile(sizeof(T) * index + (sizeof(bitmap)*(M/8)), file);
         // file.read(reinterpret_cast<char*>(&node), sizeof(T));
         return node;
     }
 
     void writeNode(int index, T& node) {
         file.seekp(sizeof(T) * index + (sizeof(bitmap)*(M/8)));
-        node.writeToFile(sizeof(T) * index + (sizeof(bitmap)*(M/8) + 1), file);
+        node.writeToFile(sizeof(T) * index + (sizeof(bitmap)*(M/8)), file);
         // file.write(reinterpret_cast<const char*>(&node), sizeof(T));
     }
 };
