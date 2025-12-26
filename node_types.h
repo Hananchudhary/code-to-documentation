@@ -5,18 +5,34 @@
 #include<memory.h>
 #include"config.h"
 using namespace std;
+enum class OFSErrorCodes : int32_t {
+    SUCCESS = 0,                      // Operation completed successfully
+    ERROR_MAX_USERS = -12,
+    ERROR_USER_EXISTS = -13,
+    ERROR_NOT_FOUND = -1,            // File/directory/user not found
+    ERROR_PERMISSION_DENIED = -2,    // User lacks required permissions
+    ERROR_IO_ERROR = -3,             // File I/O operation failed
+    ERROR_INVALID_PATH = -4,         // Path format is invalid
+    ERROR_FILE_EXISTS = -5,          // File/directory already exists
+    ERROR_NO_SPACE = -6,             // Insufficient space in file system
+    ERROR_INVALID_CONFIG = -7,       // Configuration file is invalid
+    ERROR_NOT_IMPLEMENTED = -8,      // Feature not yet implemented
+    ERROR_INVALID_SESSION = -9,      // Session is invalid or expired
+    ERROR_DIRECTORY_NOT_EMPTY = -10, // Cannot delete non-empty directory
+    ERROR_INVALID_OPERATION = -11    // Operation not allowed
+};
 struct User {     
     char userName[MAX_USERNAME_LEN+1];
     char password[MAX_USERNAME_LEN+1];
     uint8_t is_active;
-    
+    uint16_t files;
     User() : is_active(0) {
         memset(userName, 0, sizeof(userName));
         memset(password, 0, sizeof(password));
     }
     
     User(const string& uname, const string& pwd) 
-        : is_active(1) {
+        :files{0}, is_active(1) {
         strncpy(userName, uname.c_str(), sizeof(userName)-1);
         strncpy(password, pwd.c_str(), sizeof(password)-1);
     }

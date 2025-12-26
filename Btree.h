@@ -1,19 +1,18 @@
 #ifndef BTREE_H
 #define BTREE_H
 #include<iostream>
+#include<math.h>
 #include"DiskManager.h"
 using namespace std;
-
-class BTree;
-
+template <int M,int K, int O>
 class BTreeNode {
-private:
+public:
     bool isLeaf;
     int n;                     // Current number of keys
     int t;                     // Minimum degree (defines range for number of keys)
-    vector<uint32_t> keys;     // Array of keys (sorted, max = 2t-1)
-    vector<uint32_t> file_child; // Disk offsets for child nodes (max = 2t)
-    vector<BTreeNode*> mem_child; // In-memory pointers to child nodes
+    uint32_t keys[M]{};     // Array of keys (sorted, max = 2t-1)
+    uint32_t file_child[M+1]{}; // Disk offsets for child nodes (max = 2t)
+    BTreeNode<M, K,O>* mem_child[M+1]{}; // In-memory pointers to child nodes
     uint32_t diskidx;          // This node's own disk offset
     
     // Private helper methods
@@ -24,8 +23,8 @@ private:
         }
         return idx;
     }
-    void splitChild(int i, BTreeNode* y, DiskManager<BTreeNode>& disk){
-        BTreeNode* z = new BTreeNode(y->t, y->isLeaf, disk.allocateBlock());
+    void splitChild(int i, BTreeNode<M, K,O>* y, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
+        BTreeNode<M, K,O>* z = new BTreeNode<M, K,O>(y->isLeaf, disk.allocateBlock());
         z->n = t - 1;
         
         // Copy last (t-1) keys of y to z
@@ -71,7 +70,7 @@ private:
         disk.writeNode(z->diskidx,*z);
         disk.writeNode(this->diskidx,*this);
     }
-    void insertNonFull(uint32_t k, DiskManager<BTreeNode>& disk){
+    void insertNonFull(uint32_t k, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         int i = n-1;
         
         if (isLeaf) {
@@ -95,7 +94,7 @@ private:
 
             // Load child if needed
             if (mem_child[i+1] == nullptr && file_child[i+1] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(file_child[i+1]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[i+1]));
                 mem_child[i+1] = b;
             }
 
@@ -115,7 +114,7 @@ private:
             }
         }
     }
-    void removeFromLeaf(int idx, DiskManager<BTreeNode>& disk){
+    void removeFromLeaf(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         for (int i = idx+1; i < n; i++) {
             keys[i-1] = keys[i];
         }
@@ -123,16 +122,16 @@ private:
         n--;
         disk.writeNode(this->diskidx,*this);
     }
-    void removeFromNonLeaf(int idx, DiskManager<BTreeNode>& disk){
+    void removeFromNonLeaf(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         uint32_t k = keys[idx];
         
         // Load children if needed
         if (mem_child[idx] == nullptr && file_child[idx] != 0) {
-            BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx]));
+            BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx]));
             mem_child[idx] = b;
         }
         if (mem_child[idx+1] == nullptr && file_child[idx+1] != 0) {
-            BTreeNode* b =new BTreeNode(disk.readNode(file_child[idx+1]));
+            BTreeNode<M, K,O>* b =new BTreeNode<M, K,O>(disk.readNode(file_child[idx+1]));
             mem_child[idx+1] = b;
         }
 
@@ -151,19 +150,19 @@ private:
             }
         }
     }
-    uint32_t getPredecessor(int idx, DiskManager<BTreeNode>& disk){
+    uint32_t getPredecessor(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         // Load child if needed
         if (mem_child[idx] == nullptr && file_child[idx] != 0) {
-            BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx]));
+            BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx]));
             mem_child[idx] = b;
         }
 
-        BTreeNode* cur = mem_child[idx];
+        BTreeNode<M, K,O>* cur = mem_child[idx];
         while (cur != nullptr && !cur->isLeaf) {
             // Load last child if needed
             int last = cur->n;
             if (cur->mem_child[last] == nullptr && cur->file_child[last] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(cur->file_child[last]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(cur->file_child[last]));
                 cur->mem_child[last] = b;
             }
             cur = cur->mem_child[last];
@@ -171,18 +170,18 @@ private:
 
         return (cur != nullptr && cur->n > 0) ? cur->keys[cur->n-1] : 0;
     }
-    uint32_t getSuccessor(int idx, DiskManager<BTreeNode>& disk){
+    uint32_t getSuccessor(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         // Load child if needed
         if (mem_child[idx+1] == nullptr && file_child[idx+1] != 0) {
-            BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx+1]));
+            BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx+1]));
             mem_child[idx+1] = b;
         }
 
-        BTreeNode* cur = mem_child[idx+1];
+        BTreeNode<M, K,O>* cur = mem_child[idx+1];
         while (cur != nullptr && !cur->isLeaf) {
             // Load first child if needed
             if (cur->mem_child[0] == nullptr && cur->file_child[0] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(cur->file_child[0]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(cur->file_child[0]));
                 cur->mem_child[0] = b;
             }
             cur = cur->mem_child[0];
@@ -190,17 +189,17 @@ private:
 
         return (cur != nullptr && cur->n > 0) ? cur->keys[0] : 0;
     }
-    void fill(int idx, DiskManager<BTreeNode>& disk){
+    void fill(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         // Load siblings if needed
         if (idx != 0) {
             if (mem_child[idx-1] == nullptr && file_child[idx-1] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx-1]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx-1]));
                 mem_child[idx-1] = b;
             }
         }
         if (idx != n) {
             if (mem_child[idx+1] == nullptr && file_child[idx+1] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx+1]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx+1]));
                 mem_child[idx+1] = b;
             }
         }
@@ -217,9 +216,9 @@ private:
             }
         }
     }
-    void borrowFromPrev(int idx, DiskManager<BTreeNode>& disk){
-        BTreeNode* child = mem_child[idx];
-        BTreeNode* sibling = mem_child[idx-1];
+    void borrowFromPrev(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
+        BTreeNode<M, K,O>* child = mem_child[idx];
+        BTreeNode<M, K,O>* sibling = mem_child[idx-1];
         
         // Move all keys in child one step ahead
         for (int i = child->n-1; i >= 0; i--) {
@@ -254,9 +253,9 @@ private:
         disk.writeNode(sibling->diskidx,*sibling);
         disk.writeNode(this->diskidx,*this);
     }
-    void borrowFromNext(int idx, DiskManager<BTreeNode>& disk){
-        BTreeNode* child = mem_child[idx];
-        BTreeNode* sibling = mem_child[idx+1];
+    void borrowFromNext(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
+        BTreeNode<M, K,O>* child = mem_child[idx];
+        BTreeNode<M, K,O>* sibling = mem_child[idx+1];
         
         // child's last key = parent's key
         child->keys[child->n] = keys[idx];
@@ -291,9 +290,9 @@ private:
         disk.writeNode(sibling->diskidx,*sibling);
         disk.writeNode(this->diskidx,*this);
     }
-    void merge(int idx, DiskManager<BTreeNode>& disk){
-        BTreeNode* child = mem_child[idx];
-        BTreeNode* sibling = mem_child[idx+1];
+    void merge(int idx, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
+        BTreeNode<M, K,O>* child = mem_child[idx];
+        BTreeNode<M, K,O>* sibling = mem_child[idx+1];
         
         // Move key from parent to child
         child->keys[t-1] = keys[idx];
@@ -336,73 +335,10 @@ private:
     }
     
 public:
-    void writeToFile(uint32_t idx,std::fstream& file) {
-        file.seekp(idx, ios::beg);
-        // 1. Write isLeaf
-        BTreeNode node = *this;
-        file.write(reinterpret_cast<const char*>(&node.isLeaf), sizeof(node.isLeaf));
-
-        file.write(reinterpret_cast<const char*>(&node.n), sizeof(node.n));
-        file.write(reinterpret_cast<const char*>(&node.t), sizeof(node.t));
-
-        // 4. Write each key
-        for (const uint32_t& key : node.keys) {
-            file.write(reinterpret_cast<const char*>(&key), sizeof(uint32_t));
-        }
-
-        for (const uint32_t& child : node.file_child) {
-            file.write(reinterpret_cast<const char*>(&child), sizeof(uint32_t));
-        }
-
-        for (BTreeNode* child : node.mem_child) {
-            file.write(reinterpret_cast<const char*>(&child), sizeof(BTreeNode*));
-        }
-
-        file.write(reinterpret_cast<const char*>(&node.diskidx), sizeof(node.diskidx));
-    }
-    void readFromFile(uint32_t idx, std::fstream& file) {
-        file.seekg(idx, ios::beg);
-        // 1. Read isLeaf
-        file.read(reinterpret_cast<char*>(&isLeaf), sizeof(isLeaf));
-        
-        // 2. Read n
-        file.read(reinterpret_cast<char*>(&n), sizeof(n));
-        
-        // 3. Read t
-        file.read(reinterpret_cast<char*>(&t), sizeof(t));
-        
-        // Resize vectors based on B-Tree rules
-        keys.resize(n);
-        file_child.resize(n + 1);
-        mem_child.resize(n + 1);
-        
-        // 4. Read keys
-        for (int i = 0; i < n; i++) {
-            file.read(reinterpret_cast<char*>(&keys[i]), sizeof(uint32_t));
-        }
-    
-        // 5. Read file_child (indexes)
-        for (int i = 0; i < n + 1; i++) {
-            file.read(reinterpret_cast<char*>(&file_child[i]), sizeof(uint32_t));
-        }
-    
-        // 6. Read mem_child (pointer addresses — WARNING)
-        for (int i = 0; i < n + 1; i++) {
-            BTreeNode* p = nullptr;  // read pointer as integer
-            file.read(reinterpret_cast<char*>(&p), sizeof(BTreeNode*));
-        }
-    
-        // 7. Read disk index
-        file.read(reinterpret_cast<char*>(&diskidx), sizeof(diskidx));
-    }
 
     // Constructor
-    BTreeNode(int _t = 4, bool leaf = true, int d = 0) 
-        : t(_t), isLeaf(leaf), n(0), diskidx(0) {
-        keys.resize(2 * t - 1, 0);
-        file_child.resize(2 * t, 0);
-        mem_child.resize(2 * t, nullptr);
-    }
+    BTreeNode(bool leaf = true, int d = 0) 
+        : t(ceil(M/2) - 1), isLeaf(leaf), n(0), diskidx(d) {}
     
     // Destructor
     ~BTreeNode() {
@@ -413,7 +349,7 @@ public:
         }
     }
     // Remove a key from the subtree rooted with this node
-    void remove(uint32_t k, DiskManager<BTreeNode>& disk) {
+    void remove(uint32_t k, DiskManager<BTreeNode<M, K,O>,K,O>& disk) {
         int idx = findKey(k);
 
         // The key to be removed is present in this node
@@ -438,7 +374,7 @@ public:
 
             // Load child if needed
             if (mem_child[idx] == nullptr && file_child[idx] != 0) {
-                BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx]));
+                BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx]));
                 mem_child[idx] = b;
             }
 
@@ -458,7 +394,7 @@ public:
             if (flag && idx > n) {
                 // Load child[idx-1] if needed
                 if (mem_child[idx-1] == nullptr && file_child[idx-1] != 0) {
-                    BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx-1]));
+                    BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx-1]));
                     mem_child[idx-1] = b;
                 }
                 if (mem_child[idx-1] != nullptr) {
@@ -467,7 +403,7 @@ public:
             } else {
                 // Load child[idx] if needed (might have changed after fill)
                 if (mem_child[idx] == nullptr && file_child[idx] != 0) {
-                    BTreeNode* b = new BTreeNode(disk.readNode(file_child[idx]));
+                    BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[idx]));
                     mem_child[idx] = b;
                 }
                 if (mem_child[idx] != nullptr) {
@@ -494,14 +430,14 @@ public:
     void setFileChild(int index, uint32_t offset) { 
         if (index >= 0 && index < 2*t) file_child[index] = offset; 
     }
-    void setMemChild(int index, BTreeNode* child) { 
+    void setMemChild(int index, BTreeNode<M, K,O>* child) { 
         if (index >= 0 && index < 2*t) mem_child[index] = child; 
     }
     void setKeyCount(int count) { n = count; }
     void setIsLeaf(bool leaf) { isLeaf = leaf; }
     
     // Public methods
-    BTreeNode* search(uint32_t k, DiskManager<BTreeNode>& disk){
+    BTreeNode<M, K,O>* search(uint32_t k, DiskManager<BTreeNode<M, K,O>,K,O>& disk){
         int i = 0;
         while (i < n && k > keys[i]) {
             i++;
@@ -519,7 +455,7 @@ public:
 
         // Load child if needed
         if (mem_child[i] == nullptr && file_child[i] != 0) {
-            BTreeNode* b = new BTreeNode(disk.readNode(file_child[i]));
+            BTreeNode<M, K,O>* b = new BTreeNode<M, K,O>(disk.readNode(file_child[i]));
             mem_child[i] = b;
         }
 
@@ -542,20 +478,15 @@ public:
             }
         }
     }
-    
-    // Friend class declaration
-    friend class BTree;
 };
-
+template <int M,int K, int O>
 class BTree {
 private:
-    BTreeNode* root;
-    DiskManager<BTreeNode> disk;
-    int t;  // Minimum degree
-    
+    BTreeNode<M, K,O>* root;
+    DiskManager<BTreeNode<M, K,O>, K, O> disk;
     
     // Recursive delete subtree
-    void deleteSubtree(BTreeNode* node) {
+    void deleteSubtree(BTreeNode<M, K,O>* node) {
         if (node == nullptr) return;
         
         if (!node->isLeaf) {
@@ -570,21 +501,21 @@ private:
     }
     
 public:
-    BTreeNode* loadNode(uint32_t offset) {
+    BTreeNode<M, K,O>* loadNode(uint32_t offset) {
         // Check if already loaded (simple implementation)
         // In advanced version, use LRU cache
-        BTreeNode* u = new BTreeNode(disk.readNode(offset));
+        BTreeNode<M, K,O>* u = new BTreeNode<M, K,O>(disk.readNode(offset));
         return u;
     }
     
     // Save a node to disk
-    void saveNode(BTreeNode* node) {
+    void saveNode(BTreeNode<M, K,O>* node) {
         if (node == nullptr) return;
         disk.writeNode(node->diskidx, *node);
     }
     // Constructor
     BTree(const string& filename, int _t = 4, const int MAX = MAX_USERS) 
-        : disk(filename, MAX), t(_t), root(nullptr) {
+        : disk(filename), root(nullptr) {
         
         // Try to load root from existing file
         loadFromFile();
@@ -602,7 +533,7 @@ public:
     bool search(uint32_t k) {
         if (root == nullptr) return false;
         
-        BTreeNode* result = root->search(k, this->disk);
+        BTreeNode<M, K,O>* result = root->search(k, this->disk);
         return (result != nullptr);
     }
     
@@ -610,15 +541,16 @@ public:
     void insert(uint32_t k) {
         // If tree is empty
         if (root == nullptr) {
-            root = new BTreeNode(t, true);
+            root = new BTreeNode<M, K,O>(true);
             root->keys[0] = k;
             root->n = 1;
             root->diskidx = disk.allocateBlock();
             saveNode(root);
-        } else {
+        } 
+        else {
             // If root is full, tree grows in height
-            if (root->n == 2*t - 1) {
-                BTreeNode* newRoot = new BTreeNode(t, false, disk.allocateBlock());
+            if (root->n == M) {
+                BTreeNode<M, K,O>* newRoot = new BTreeNode<M, K,O>(false, disk.allocateBlock());
                 newRoot->setMemChild(0, root);
                 newRoot->splitChild(0, root, this->disk);
                 
@@ -650,7 +582,7 @@ public:
 
         // If root becomes empty after deletion
         if (root->n == 0) {
-            BTreeNode* temp = root;
+            BTreeNode<M, K,O>* temp = root;
 
             if (root->isLeaf) {
                 root = nullptr;
@@ -700,7 +632,7 @@ public:
     
 private:
     // Recursive save
-    void saveSubtree(BTreeNode* node) {
+    void saveSubtree(BTreeNode<M, K,O>* node) {
         if (node == nullptr) return;
         
         // Save this node
@@ -717,7 +649,7 @@ private:
     }
     
     // Recursive load
-    void loadChildren(BTreeNode* node) {
+    void loadChildren(BTreeNode<M, K,O>* node) {
         if (node == nullptr || node->isLeaf) return;
         
         for (int i = 0; i <= node->n; i++) {
