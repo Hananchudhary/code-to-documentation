@@ -52,8 +52,8 @@ class UserDBManager{
         AVLNode<User>* us = users[idx].search(username);
         if(!us){
             users[idx].loadTree(file,(MAX_USERS/8 + offset + idx*sizeof(AVLNode<User>)));
+            us = users[idx].search(username);
         }
-        us = users[idx].search(username);
         if(!us) return false;
         return true;
     }

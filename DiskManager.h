@@ -24,6 +24,7 @@ public:
         if (!file) {
             file.open(filename, ios::out | ios::binary);
             for (int i = 0; i < M / 8; i++) bitmap[i] = 0;
+            file.seekp(O, ios::beg);
             file.write((char*)bitmap, sizeof(bitmap));
             file.close();
             file.open(filename, ios::in | ios::out | ios::binary);
@@ -91,13 +92,13 @@ public:
     }
     T readNode(int index) {
         T node;
-        file.seekg(sizeof(T) * index + (sizeof(bitmap))+O);
+        file.seekg(sizeof(T) * index + (sizeof(bitmap))+O, ios::beg);
         file.read(reinterpret_cast<char*>(&node), sizeof(T));
         return node;
     }
 
     void writeNode(int index, T& node) {
-        file.seekp(sizeof(T) * index + (sizeof(bitmap))+O);
+        file.seekp(sizeof(T) * index + (sizeof(bitmap))+O, ios::beg);
         file.write(reinterpret_cast<const char*>(&node), sizeof(T));
     }
 };

@@ -51,9 +51,9 @@ private:
         
         updateHeight(y);
         updateHeight(x);
-        file.seekp(y->idx);
+        file.seekp(y->idx, ios::beg);
         file.write(reinterpret_cast<const char*>(y), sizeof(*y));
-        file.seekp(x->idx);
+        file.seekp(x->idx, ios::beg);
         file.write(reinterpret_cast<const char*>(x), sizeof(*x));
         return x;
     }
@@ -67,9 +67,9 @@ private:
         
         updateHeight(x);
         updateHeight(y);
-        file.seekp(y->idx);
+        file.seekp(y->idx, ios::beg);
         file.write(reinterpret_cast<const char*>(y), sizeof(*y));
-        file.seekp(x->idx);
+        file.seekp(x->idx, ios::beg);
         file.write(reinterpret_cast<const char*>(x), sizeof(*x));
         return y;
     }
@@ -77,7 +77,7 @@ private:
         if (!node){ 
             AVLNode<T>* t = new AVLNode<T>(key, value, idx);
             _size++;
-            file.seekp(idx);
+            file.seekp(idx, ios::beg);
             file.write(reinterpret_cast<const char*>(t), sizeof(*t));
             return t;
         }
@@ -120,7 +120,7 @@ private:
             node->right = rotateRight(node->right, file);
             return rotateLeft(node, file);
         }
-        file.seekp(node->idx);
+        file.seekp(node->idx, ios::beg);
         file.write(reinterpret_cast<char*>(node), sizeof(*node));
         return node;
     }
@@ -146,7 +146,7 @@ private:
                 } else {
                     *node = *temp;
                 }
-                file.seekp(temp->idx);
+                file.seekp(temp->idx, ios::beg);
                 file.write(reinterpret_cast<const char*>('\0'), sizeof(*temp));
                 delete temp;
                 
@@ -184,7 +184,7 @@ private:
             node->right = rotateRight(node->right);
             return rotateLeft(node);
         }
-        file.seekp(node->idx);
+        file.seekp(node->idx, ios::beg);
         file.write(reinterpret_cast<const char*>(node), sizeof(*node));
         return node;
     }
@@ -210,7 +210,7 @@ private:
     
     AVLNode<T>* load(AVLNode<T>* node,fstream& file, uint32_t i){
         if(i==0) return nullptr;
-        file.seekg(i);
+        file.seekg(i, ios::beg);
         AVLNode<T> u;
         file.read(reinterpret_cast<char*>(&u), sizeof(u));
         node = new AVLNode<T>(u);

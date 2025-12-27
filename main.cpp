@@ -7,7 +7,7 @@
 #include<fstream>
 #include"users_db.h"
 #include"parser.h"
-
+#include"files_db.h"
 using namespace std;
 
 string readInputFromFile(string filename){
@@ -20,47 +20,50 @@ string readInputFromFile(string filename){
     }
     return code;
 }
-void firstRun() {
-    UserDBManager db;
-
-    db.addUser("alice", "123");
-    db.addUser("bob", "456");
-    db.addUser("charlie", "789");
-
-    cout << "[RUN 1] Users inserted\n";
-}
-
-void secondRun() {
-    UserDBManager db;
-    User u;
-
-    cout << "[RUN 2] Reading persisted users\n";
-
-    if (db.getUser("alice", u))
-        cout << "alice OK inode=" << endl;
-    else
-        cout << "alice FAIL\n";
-
-    if (db.getUser("bob", u))
-        cout << "bob OK inode="<< endl;
-    else
-        cout << "bob FAIL\n";
-
-    if (db.getUser("charlie", u))
-        cout << "charlie OK inode=" << endl;
-    else
-        cout << "charlie FAIL\n";
-}
 
 int main() {
-    cout << "1 = insert, 2 = read\n> ";
-    int mode;
-    cin >> mode;
+    system("fallocate -l 2M files.omni");
+    FileDBManager fdm;
 
-    if (mode == 1)
-        firstRun();
-    else
-        secondRun();
+    // cout << "=== FILE DB PERSISTENCY TEST ===\n";
+
+    // // ---------- CREATE FILES ----------
+    // cout << "\n[Creating files]\n";
+
+    // fdm.createFile("alice", "readme.txt",
+    //     "Hello, this is Alice's file.\nPersistent storage test.");
+
+    // // fdm.createFile("bob", "notes.txt","Bob's notes:\n- OS\n- DBMS\n- File Systems");
+
+    // // fdm.createFile("charlie", "todo.txt","TODO:\n1. Finish project\n2. Sleep\n3. Debug");
+
+    // cout << "File creation attempted.\n";
+
+    // ---------- READ FILES ----------
+    cout << "\n[Reading files]\n";
+
+    FileEntry fe;
+    string data;
+
+    if (fdm.ReadFile("alice", fe, "readme.txt", data) == 0) {
+        cout << "\nAlice/readme.txt:\n" << data << endl;
+    } else {
+        cout << "Failed to read Alice/readme.txt\n";
+    }
+
+    if (fdm.ReadFile("bob", fe, "notes.txt", data) == 0) {
+        cout << "\nBob/notes.txt:\n" << data << endl;
+    } else {
+        cout << "Failed to read Bob/notes.txt\n";
+    }
+
+    if (fdm.ReadFile("charlie", fe, "todo.txt", data) == 0) {
+        cout << "\nCharlie/todo.txt:\n" << data << endl;
+    } else {
+        cout << "Failed to read Charlie/todo.txt\n";
+    }
+
+    cout << "\n=== END OF TEST ===\n";
 
     return 0;
 }

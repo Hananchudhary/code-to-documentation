@@ -49,6 +49,11 @@ struct FileEntry {
         memset(name, 0, sizeof(name) - 1);
         memset(userName, 0, sizeof(userName) - 1);
     }
+    FileEntry(const string& uname, const string& fname, uint32_t i) 
+        :size{0}, is_valid(1), inode{i} {
+        strncpy(userName, uname.c_str(), sizeof(userName)-1);
+        strncpy(name, fname.c_str(), sizeof(fname)-1);
+    }
 };
 
 // Block header for disk storage
