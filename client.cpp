@@ -49,7 +49,7 @@ json send_request(const json& request) {
 }
 
 int main() {
-    // --- Test 1: Login ---
+
     json login_req = {
         {"operation", "login"},
         {"parameters", {
@@ -60,7 +60,6 @@ int main() {
     json login_res = send_request(login_req);
     cout << "Login response:\n" << login_res.dump(4) << "\n\n";
 
-    // --- Test 2: Create File ---
     json create_req = {
         {"operation", "create_file"},
         {"parameters", {
@@ -72,7 +71,6 @@ int main() {
     json create_res = send_request(create_req);
     cout << "Create file response:\n" << create_res.dump(4) << "\n\n";
 
-    // --- Test 3: Read File ---
     json read_req = {
         {"operation", "read_file"},
         {"parameters", {

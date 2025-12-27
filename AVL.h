@@ -218,6 +218,14 @@ private:
         node->right = load(node->right, file, u.rchild);
         return node;
     }
+    void getFiles(AVLNode<T>* node,const string& username, vector<string>& res){
+        if(!node) return;
+        if(strncmp(&node->key[0], &username[0], username.size()) == 0){
+            res.push_back(node->key);
+        }
+        getFiles(node->left, username, res);
+        getFiles(node->right, username, res);
+    }
 public:
     AVLTree() : root(nullptr){}
     int size(){return this->_size;}
@@ -258,6 +266,11 @@ public:
     }
     void loadTree(fstream& file,uint32_t idx){
         root = this->load(root, file, idx);
+    }
+    vector<string> getFiles(const string username){
+        vector<string> res;
+        getFiles(root, username, res);
+        return res;
     }
 };
 #endif

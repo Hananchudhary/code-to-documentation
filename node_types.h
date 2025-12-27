@@ -21,6 +21,10 @@ enum class OFSErrorCodes : int32_t {
     ERROR_DIRECTORY_NOT_EMPTY = -10, // Cannot delete non-empty directory
     ERROR_INVALID_OPERATION = -11    // Operation not allowed
 };
+enum class Permission : uint8_t{
+    OWN = 1,
+    READ = 2
+};
 struct User {     
     char userName[MAX_USERNAME_LEN+1];
     char password[MAX_USERNAME_LEN+1];

@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <nlohmann/json.hpp>
+#include"Huffman.h"
 #include"circularqueue.h"
 using json = nlohmann::json;
 using namespace std;
@@ -104,14 +105,25 @@ json handle_request(const json& req) {
         string data;
 
         int err = manager.generateDoc(filename, username, data);
-        if (err == 0) {
-            json res;
-            res["result_data"] = data;
-            return make_success_response(operation, res);
-        }
-        return make_error_response(operation, err, "Document generation failed");
-    }
+        if (err != 0)
+            return make_error_response(operation, err, "Document generation failed");
 
+        HuffmanCoding hf;
+        auto freq = countfreq(data);
+        string encoded = hf.encode(data);
+
+        json res;
+        res["encoded_data"] = encoded;
+        res["freq_table"] = freq;
+        res["compression"] = "huffman";
+        res["original_size"] = data.size();
+        res["encoded_size"] = encoded.size();
+
+        return make_success_response(operation, res);
+    }
+    if(operation == "get_files"){
+
+    }
     return make_error_response(operation,-1, "Unknown operation");
 }
 void worker_thread() {
@@ -141,6 +153,7 @@ int main() {
         perror("Socket failed");
         return 1;
     }
+    
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
         perror("setsockopt failed");

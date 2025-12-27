@@ -118,7 +118,7 @@ class FileDBManager{
             int b = dataDM.allocateBlock();
             FileEntry f(username, filename, b*(sizeof(BlockHdr)+BLOCK_SIZE ) + offset2+MAX_BLOCKS/8);
 
-            files[idx].insert(username, f,file, (i*sizeof(AVLNode<FileEntry>)+offset1+MAX_FILES/8));
+            files[idx].insert(username+filename, f,file, (i*sizeof(AVLNode<FileEntry>)+offset1+MAX_FILES/8));
             this->writeDataToFile(f.inode, data);
             size++;
             return static_cast<int>(OFSErrorCodes::SUCCESS);
@@ -146,5 +146,14 @@ class FileDBManager{
             return 0;
         }
         return static_cast<int>(OFSErrorCodes::ERROR_INVALID_CONFIG);
+    }
+    vector<string> getFilesofUser(const string username){
+        vector<string> res;
+
+        for (int i = 0; i < MAX_FILES; i++) {
+            vector<string> temp = files[i].getFiles(username);
+            res.insert(res.end(), temp.begin(), temp.end());
+        } 
+        return res;
     }
 };
