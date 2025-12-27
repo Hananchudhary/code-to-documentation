@@ -11,4 +11,6 @@ char FilesDB_FILE[] = "files.omni";
 const int MAX_USERNAME_LEN = 65;
 const int MAX_FILENAME_LEN = 65;
 const int MAX_USER_FILEs = 35;
+const int MAX_CONNECTIONS = 50;
+const int NUM_WORKERS = 1;
 #endif

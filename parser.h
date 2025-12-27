@@ -122,10 +122,6 @@ class Parser{
         
         return returnNode;
     }
-
-public:
-    Parser(): root{nullptr}, currentLine{1}{}
-    
     Node* Parse(const string& code) {
         istringstream stream(code);
         string line;
@@ -204,67 +200,72 @@ public:
         
         return nullptr;
     }
+
+public:
+    Parser(): root{nullptr}, currentLine{1}{}
     
-    void printTree() {
+    string parseTree(const string& code) {
+        string res;
+        root = Parse(code);
         if (!root) {
-            cout << "No AST generated." << endl;
-            return;
+            res+= "No AST generated.\n";
+            return res;
         }
         
-        cout << "Root" << endl;
-        cout << "|" << endl;
+        res+= "Root\n";
+        res+= "|\n";
         
         if (root->type == "FunctionDef") {
             FunctionDef* func = (FunctionDef*)root;
             
-            cout << "|- Function definition" << endl;
-            cout << "   |" << endl;
-            cout << "   | - Name(\"" << func->funcName << "\")" << endl;
-            cout << "   | - ReturnType(\"" << func->returnType << "\")" << endl;
-            cout << "   | - Function Body" << endl;
+            res+= "|- Function definition";
+            res+= "   |";
+            res=res+ "   | - Name(\"" + func->funcName + "\")\n";
+            res=res+ "   | - ReturnType(\"" + func->returnType + "\")\n";
+            res+= "   | - Function Body";
             
             if (func->body && func->body->type == "FunctionBody") {
                 FunctionBody* body = (FunctionBody*)func->body;
                 
-                cout << "       |" << endl;
+                res+="       |\n";
                 
                 Node* current = body->root;
                 while (current) {
-                    cout << "       | - ";
+                    res+="       | - \n";
                     
                     if (current->type == "Declaration") {
                         Declaration* decl = (Declaration*)current;
-                        cout << "Declaration(";
+                        res+= "Declaration(\n";
                         for (size_t i = 0; i < decl->vars.size(); i++) {
-                            cout << decl->vars[i].name;
+                            res+= decl->vars[i].name;
                             if (decl->vars[i].val != "uninitialized") {
-                                cout << " = " << decl->vars[i].val;
+                                res=res+ " = " + decl->vars[i].val;
                             }
-                            if (i != decl->vars.size() - 1) cout << ", ";
+                            if (i != decl->vars.size() - 1) res+= ", ";
                         }
-                        cout << ")";
+                        res+= ")";
                     }
                     else if (current->type == "Expression") {
                         Expression* expr = (Expression*)current;
                         if (expr->leftOpr && expr->right) {
                             if (expr->leftOpr->dataType != "") {
-                                cout << "Declaration(" << expr->leftOpr->name << "), ";
+                                res=res+ "Declaration(" + expr->leftOpr->name + "), ";
                             } else {
-                                cout << "variable: '" << expr->leftOpr->name << "', ";
+                                res=res+ "variable: '" + expr->leftOpr->name + "', ";
                             }
-                            cout << "opr: '" << expr->operation << "', ";
-                            cout << "right: variable: '" << expr->right->name << "'";
+                            res=res+ "opr: '" + expr->operation + "', ";
+                            res=res+ "right: variable: '" + expr->right->name + "'";
                         }
                     }
                     else if (current->type == "Return") {
-                        cout << "returned (" << current->name.substr(7, current->name.size()-8) << ")";
+                        res=res+ "returned (" + current->name.substr(7, current->name.size()-8) + ")";
                     }
                     
-                    cout << endl;
+                    res+= "\n";
                     current = current->child;
                 }
             }
         }
-        
+        return res;
     }
 };

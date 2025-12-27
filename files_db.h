@@ -125,7 +125,7 @@ class FileDBManager{
         }
         return static_cast<int>(OFSErrorCodes::ERROR_FILE_EXISTS);
     }
-    int ReadFile(const string& username, FileEntry& u, const string& filename, string& data) {
+    int ReadFile(const string& username,const string& filename, string& data) {
         uint32_t idx = myHash(username, filename);
         if (!files_idx.search(idx)) return -7;
         AVLNode<FileEntry>* us = files[idx].search(username);
@@ -136,5 +136,15 @@ class FileDBManager{
         if(!us) return -7;
         data = readDataFromFile(us->value.inode);
         return 0;
+    }
+    int editFile(const string username, const string filename, const string data){
+        uint32_t idx = myHash(username, filename);
+        int i = idx;
+        AVLNode<FileEntry>* fs = files[idx].search(username);
+        if(fs){
+            this->writeDataToFile(fs->value.inode, data);
+            return 0;
+        }
+        return static_cast<int>(OFSErrorCodes::ERROR_INVALID_CONFIG);
     }
 };

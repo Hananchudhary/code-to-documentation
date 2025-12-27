@@ -46,7 +46,7 @@ class UserDBManager{
         }
         return static_cast<int>(OFSErrorCodes::ERROR_USER_EXISTS);
     }
-    bool getUser(const string& username, User& u) {
+    int getUser(const string& username, const string password, User& u) {
         uint32_t idx = myHash(username);
         if (!user_idx.search(idx)) return false;
         AVLNode<User>* us = users[idx].search(username);
@@ -55,6 +55,7 @@ class UserDBManager{
             us = users[idx].search(username);
         }
         if(!us) return false;
+        if(strcmp(password.c_str(), us->value.password)!=0)return false;
         return true;
     }
     // int deleteUser(const string& username,const string& password){
