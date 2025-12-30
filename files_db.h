@@ -128,10 +128,10 @@ class FileDBManager{
     int ReadFile(const string& username,const string& filename, string& data) {
         uint32_t idx = myHash(username, filename);
         if (!files_idx.search(idx)) return -7;
-        AVLNode<FileEntry>* us = files[idx].search(username);
+        AVLNode<FileEntry>* us = files[idx].search(username+filename);
         if(!us){
             files[idx].loadTree(file,(MAX_FILES/8 + offset1 + idx*sizeof(AVLNode<FileEntry>)));
-            us = files[idx].search(username);
+            us = files[idx].search(username+filename);
         }
         if(!us) return -7;
         data = readDataFromFile(us->value.inode);
@@ -140,7 +140,7 @@ class FileDBManager{
     int editFile(const string username, const string filename, const string data){
         uint32_t idx = myHash(username, filename);
         int i = idx;
-        AVLNode<FileEntry>* fs = files[idx].search(username);
+        AVLNode<FileEntry>* fs = files[idx].search(username+filename);
         if(fs){
             this->writeDataToFile(fs->value.inode, data);
             return 0;
@@ -155,5 +155,24 @@ class FileDBManager{
             res.insert(res.end(), temp.begin(), temp.end());
         } 
         return res;
+    }
+    bool hasFileAccess(const string username, const string filename){
+        int idx = myHash(username, filename);
+        AVLNode<FileEntry>* f = files[idx].search(username+filename);
+        if(!f) return false;
+        if(strcmp(&username[0],f->value.userName) != 0 || strcmp(&filename[0], f->value.name) != 0){
+            return false;
+        }
+        return true;
+    }
+    bool getUser(const string filename, FileEntry& fe){
+        for (int i = 0; i < MAX_FILES; i++) {
+            AVLNode<FileEntry>* fs = files[i].search(filename);
+            if(fs){
+                fe = fs->value;
+                return true;
+            }
+        }
+        return false;
     }
 };

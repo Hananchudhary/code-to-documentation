@@ -122,7 +122,18 @@ json handle_request(const json& req) {
         return make_success_response(operation, res);
     }
     if(operation == "get_files"){
+        // get the names of all the files in a specific order as they
+        // come from server along it will call every time the user comes
+        // to home
+    }
+    if(operation == "get_file_names"){
+        // this will be called during searching for fast retrieval
+    }
+    if(operation == "share_file"){
 
+    }
+    if(operation == "read_shared_file"){
+        
     }
     return make_error_response(operation,-1, "Unknown operation");
 }

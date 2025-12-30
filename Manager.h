@@ -4,7 +4,10 @@
 #include"users_db.h"
 #include"parser.h"
 #include"trie.h"
+#include"sAVL.h"
+#include"filesharing.h"
 #include"maxHeap.h"
+#include"encrypt.h"
 using namespace std;
 struct Order{
     uint64_t lastusage;
@@ -20,9 +23,36 @@ class Manager{
     trie dictionary[MAX_USERS];
     vector<vector<Order>> files;
     maxHeap<Order> mh;
+    FSManager fs;
     public:
     Manager(){
         files.resize(MAX_USERS, vector<Order>(MAX_USER_FILEs));
+    }
+    int share_file(const string username, const string filename, const string targetuser, string& k){
+        string key(username+filename+targetuser);
+        if(!fdm.hasFileAccess(username, filename)){
+            return static_cast<int>(OFSErrorCodes::ERROR_PERMISSION_DENIED);
+        }
+        fs.share_file(key, username+filename);
+        Encrypt em;
+        strcpy(&k[0], &key[0]);
+        em.encrypt(&k[0], k.size());
+        return 0;
+    }
+    int ReadSharedFile(const string k, const string username){
+        string filename;
+        string key(k);
+        Encrypt em;
+        em.decrypt(&key[0], key.size());
+        if(!fs.hasAccess(key, filename) || !fs.hasAccess(filename+username, filename)){
+            return static_cast<int>(OFSErrorCodes::ERROR_PERMISSION_DENIED);
+        }
+        FileEntry f;
+        if(!fdm.getUser(filename, f)){
+            return static_cast<int>(OFSErrorCodes::ERROR_PERMISSION_DENIED);
+        }
+        string data;
+        return this->readFile(f.userName, f.name, data);
     }
     int logIn(const string username, const string password){
         User u;

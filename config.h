@@ -8,6 +8,7 @@ const int MAX_BLOCKS = 10000;
 const int MAX_FILES = 1000;
 char UserDB_FILE[] = "users.omni";
 char FilesDB_FILE[] = "files.omni";
+char ShareDB_FILE[] = "shares.omni";
 const int MAX_USERNAME_LEN = 65;
 const int MAX_FILENAME_LEN = 65;
 const int MAX_USER_FILEs = 35;

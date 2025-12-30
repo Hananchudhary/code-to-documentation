@@ -3,6 +3,7 @@
 #include<iostream>
 #include<cstdint>
 #include<memory.h>
+#include<vector>
 #include"config.h"
 using namespace std;
 enum class OFSErrorCodes : int32_t {
