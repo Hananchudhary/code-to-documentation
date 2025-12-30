@@ -121,20 +121,58 @@ json handle_request(const json& req) {
 
         return make_success_response(operation, res);
     }
-    if(operation == "get_files"){
-        // get the names of all the files in a specific order as they
-        // come from server along it will call every time the user comes
-        // to home
-    }
-    if(operation == "get_file_names"){
-        // this will be called during searching for fast retrieval
-    }
-    if(operation == "share_file"){
+    if (operation == "get_files") {
+        string username = params["username"];
 
+        // Call your function
+        vector<string> filesList = manager.getFiles(username);
+
+        json res;
+        res["files"] = filesList;   // JSON supports vector<string>
+
+        return make_success_response(operation, res);
     }
-    if(operation == "read_shared_file"){
+    if (operation == "get_file_names") {
+        string username = params["username"];
+        string pre = params["prefix"];
+        vector<string> fileNames = manager.getFileNames(username, pre);
+
+        json res;
+        res["file_names"] = fileNames;
+
+        return make_success_response(operation, res);
+    }
+    if (operation == "share_file") {
+        string owner = params["owner"];
+        string filename = params["filename"];
+        string targetUser = params["target_user"];
+        string k;
+        int err = manager.share_file(owner, filename, targetUser, k);
         
+        if (err == 0) {
+            json res;
+            res["result_data"] = k;
+            return make_success_response(operation);
+        }
+
+        return make_error_response(operation, err, "File sharing failed");
     }
+    if (operation == "read_shared_file") {
+        string username = params["username"];
+        string key = params["key"];
+        string data;
+
+        int err = manager.ReadSharedFile(username, key);
+
+        if (err == 0) {
+            json res;
+            res["result_data"] = data;
+            return make_success_response(operation, res);
+        }
+
+        return make_error_response(operation, err, "Access denied or read failed");
+    }
+
     return make_error_response(operation,-1, "Unknown operation");
 }
 void worker_thread() {

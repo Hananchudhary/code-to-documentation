@@ -5,39 +5,39 @@
 #include<string>
 using namespace std;
 template<typename T>
-struct AVLNode {
+struct sAVLNode {
     std::string key;
     T value;
     int height;
-    AVLNode* left;
-    AVLNode* right;
+    sAVLNode* left;
+    sAVLNode* right;
     
-    AVLNode(const std::string& k, const T& v) 
+    sAVLNode(const std::string& k, const T& v) 
         : key(k), value(v), height(1), left(nullptr), right(nullptr) {}
 };
 
 template<typename T>
 class sAVLTree {
 private:
-    AVLNode<T>* root;
+    sAVLNode<T>* root;
     int _size;
-    int getHeight(AVLNode<T>* node) {
+    int getHeight(sAVLNode<T>* node) {
         return node ? node->height : 0;
     }
     
-    int getBalance(AVLNode<T>* node) {
+    int getBalance(sAVLNode<T>* node) {
         return node ? getHeight(node->left) - getHeight(node->right) : 0;
     }
     
-    void updateHeight(AVLNode<T>* node) {
+    void updateHeight(sAVLNode<T>* node) {
         if (node) {
             node->height = 1 + std::max(getHeight(node->left), getHeight(node->right));
         }
     }
     
-    AVLNode<T>* rotateRight(AVLNode<T>* y) {
-        AVLNode<T>* x = y->left;
-        AVLNode<T>* T2 = x->right;
+    sAVLNode<T>* rotateRight(sAVLNode<T>* y) {
+        sAVLNode<T>* x = y->left;
+        sAVLNode<T>* T2 = x->right;
         
         x->right = y;
         y->left = T2;
@@ -48,9 +48,9 @@ private:
         return x;
     }
     
-    AVLNode<T>* rotateLeft(AVLNode<T>* x) {
-        AVLNode<T>* y = x->right;
-        AVLNode<T>* T2 = y->left;
+    sAVLNode<T>* rotateLeft(sAVLNode<T>* x) {
+        sAVLNode<T>* y = x->right;
+        sAVLNode<T>* T2 = y->left;
         
         y->left = x;
         x->right = T2;
@@ -61,9 +61,9 @@ private:
         return y;
     }
     
-    AVLNode<T>* insertNode(AVLNode<T>*& node, const std::string& key, const T& value) {
+    sAVLNode<T>* insertNode(sAVLNode<T>*& node, const std::string& key, const T& value) {
         if (!node){ 
-            return new AVLNode<T>(key, value);
+            return new sAVLNode<T>(key, value);
             _size++;
         }
         
@@ -104,12 +104,12 @@ private:
         return node;
     }
     
-    AVLNode<T>* findMin(AVLNode<T>* node) {
+    sAVLNode<T>* findMin(sAVLNode<T>* node) {
         while (node->left) node = node->left;
         return node;
     }
     
-    AVLNode<T>* deleteNode(AVLNode<T>* node, const std::string& key) {
+    sAVLNode<T>* deleteNode(sAVLNode<T>* node, const std::string& key) {
         if (!node) return nullptr;
         
         if (key < node->key) {
@@ -118,7 +118,7 @@ private:
             node->right = deleteNode(node->right, key);
         } else {
             if (!node->left || !node->right) {
-                AVLNode<T>* temp = node->left ? node->left : node->right;
+                sAVLNode<T>* temp = node->left ? node->left : node->right;
                 if (!temp) {
                     temp = node;
                     node = nullptr;
@@ -127,7 +127,7 @@ private:
                 }
                 delete temp;
             } else {
-                AVLNode<T>* temp = findMin(node->right);
+                sAVLNode<T>* temp = findMin(node->right);
                 node->key = temp->key;
                 node->value = temp->value;
                 node->right = deleteNode(node->right, temp->key);
@@ -164,25 +164,25 @@ private:
         return node;
     }
     
-    AVLNode<T>* searchNode(AVLNode<T>* node, const std::string& key) {
+    sAVLNode<T>* searchNode(sAVLNode<T>* node, const std::string& key) {
         if (!node || node->key == key) return node;
         if (key < node->key) return searchNode(node->left, key);
         return searchNode(node->right, key);
     }
     
-    void collectAll(AVLNode<T>* node, std::vector<T>& result) {
+    void collectAll(sAVLNode<T>* node, std::vector<T>& result) {
         if (!node) return;
         collectAll(node->left, result);
         result.push_back(node->value);
         collectAll(node->right, result);
     }
-    void destroyTree(AVLNode<T>* node) {
+    void destroyTree(sAVLNode<T>* node) {
         if (!node) return;
         destroyTree(node->left);
         destroyTree(node->right);
         delete node;
     }
-    void collectKeys(AVLNode<T>* node, vector<string>& res){
+    void collectKeys(sAVLNode<T>* node, vector<string>& res){
         if(!node) return;
         collectKeys(node->left, res);
         res.push_back(node->key);
@@ -196,7 +196,7 @@ public:
         destroyTree(root);
     }
     
-    AVLNode<T>* search(const std::string& key) {
+    sAVLNode<T>* search(const std::string& key) {
         return searchNode(root, key);
     }
     void insert(const std::string& key, const T& value) {
@@ -204,7 +204,7 @@ public:
     }
     
     bool find(const std::string& key, T& value) {
-        AVLNode<T>* node = searchNode(root, key);
+        sAVLNode<T>* node = searchNode(root, key);
         if (node) {
             value = node->value;
             return true;

@@ -15,6 +15,24 @@ struct Order{
     string filename;
     Order() = default;
     Order(string f, string u):filename(f),username(u), lastusage{static_cast<uint64_t>(time(nullptr))}{}
+    bool operator<(const Order& obj){
+        return this->lastusage<obj.lastusage;
+    }
+    bool operator<=(const Order& obj){
+        return this->lastusage<=obj.lastusage;
+    }
+    bool operator>(const Order& obj){
+        return this->lastusage>obj.lastusage;
+    }
+    bool operator>=(const Order& obj){
+        return this->lastusage>=obj.lastusage;
+    }
+    bool operator==(const Order& obj){
+        return this->lastusage==obj.lastusage;
+    }
+    bool operator!=(const Order& obj){
+        return this->lastusage!=obj.lastusage;
+    }
 };
 class Manager{
     FileDBManager fdm;

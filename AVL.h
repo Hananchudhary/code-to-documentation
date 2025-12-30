@@ -221,7 +221,7 @@ private:
     void getFiles(AVLNode<T>* node,const string& username, vector<string>& res){
         if(!node) return;
         if(strncmp(&node->key[0], &username[0], username.size()) == 0){
-            res.push_back(node->key);
+            res.push_back(node->value.name);
         }
         getFiles(node->left, username, res);
         getFiles(node->right, username, res);

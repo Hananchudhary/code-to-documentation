@@ -48,7 +48,7 @@ json send_request(const json& request) {
     return response;
 }
 
-int main() {
+int main1() {
 
     json login_req = {
         {"operation", "login"},

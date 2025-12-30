@@ -31,7 +31,7 @@ class FSManager{
         graph.remove(key);
     }
     bool hasAccess(const string key, string& filename){
-        AVLNode<string>* has = graph.search(key);
+        sAVLNode<string>* has = graph.search(key);
         if(!has) return false;
         filename = has->value;
         return true;
