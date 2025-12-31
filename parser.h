@@ -1,271 +1,298 @@
 #pragma once
-#include<iostream>
-#include<vector>
-#include"node_types.h"
-#include<string>
-#include<sstream>
-#include<cstdint>
-#include<algorithm>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include "node_types.h"
 
 using namespace std;
 
-string trim(const string& str) {
-    size_t first = str.find_first_not_of(' ');
-    if (string::npos == first) return "";
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
+/* ==================== Utilities ==================== */
+
+string trim(const string& s) {
+    size_t start = s.find_first_not_of(" \t");
+    size_t end = s.find_last_not_of(" \t");
+    if (start == string::npos) return "";
+    return s.substr(start, end - start + 1);
 }
 
-vector<string> split(const string& str, char delimiter) {
+vector<string> split(const string& s, char delim) {
     vector<string> tokens;
-    string token;
-    istringstream tokenStream(str);
-    while (getline(tokenStream, token, delimiter)) {
-        token = trim(token);
-        if (!token.empty()) tokens.push_back(token);
-    }
+    string tok;
+    istringstream ss(s);
+    while (getline(ss, tok, delim))
+        tokens.push_back(trim(tok));
     return tokens;
 }
 
-bool isDataType(const string& token) {
-    vector<string> types = {"int", "float", "double", "char", "bool", "void", "string", "long", "short"};
-    return find(types.begin(), types.end(), token) != types.end();
+bool isDataType(const string& s) {
+    static vector<string> types = {
+        "int","float","double","char","bool","void","string"
+    };
+    return find(types.begin(), types.end(), s) != types.end();
 }
 
-class Parser{
-    Node* root;
+/* ==================== Parser ==================== */
+
+class Parser {
+    Program* root;
     int currentLine;
-    
+
+    /* ---------- Statement Parsers ---------- */
+
     Node* parseDeclaration(const string& line) {
         Declaration* decl = new Declaration(currentLine);
-        
-        string cleanLine = line;
-        if (cleanLine.back() == ';') cleanLine.pop_back();
-        
-        vector<string> parts = split(cleanLine, ' ');
-        if (parts.empty()) return decl;
-        
-        string dataType = parts[0];
-        
-        if (parts.size() > 1) {
-            string varPart = parts[1];
-            for (size_t i = 2; i < parts.size(); i++) {
-                varPart += " " + parts[i];
+
+        string clean = line;
+        if (clean.back() == ';') clean.pop_back();
+
+        auto parts = split(clean, ' ');
+        string type = parts[0];
+
+        auto vars = split(clean.substr(type.size()), ',');
+
+        for (auto& v : vars) {
+            variable var;
+            var.dataType = type;
+            var.scope = "local";
+            var.MemType = "auto";
+
+            size_t eq = v.find('=');
+            if (eq != string::npos) {
+                var.name = trim(v.substr(0, eq));
+                var.val = trim(v.substr(eq + 1));
+            } else {
+                var.name = trim(v);
+                var.val = "uninitialized";
             }
-            
-            vector<string> varDecls = split(varPart, ',');
-            
-            for (const string& varDecl : varDecls) {
-                variable var;
-                var.dataType = dataType;
-                var.scope = "local";
-                var.MemType = "auto";
-                
-                size_t eqPos = varDecl.find('=');
-                if (eqPos != string::npos) {
-                    var.name = trim(varDecl.substr(0, eqPos));
-                    var.val = trim(varDecl.substr(eqPos + 1));
-                } else {
-                    var.name = trim(varDecl);
-                    var.val = "uninitialized";
-                }
-                
-                decl->vars.push_back(var);
-            }
+            decl->vars.push_back(var);
         }
-        
         return decl;
     }
-    
+
     Node* parseExpression(const string& line) {
         Expression* expr = new Expression(currentLine);
-        
-        string cleanLine = line;
-        if (cleanLine.back() == ';') cleanLine.pop_back();
-        
-        size_t eqPos = cleanLine.find('=');
-        if (eqPos != string::npos) {
-            string leftStr = trim(cleanLine.substr(0, eqPos));
-            string rightStr = trim(cleanLine.substr(eqPos + 1));
-            
-            vector<string> leftParts = split(leftStr, ' ');
-            if (leftParts.size() >= 2 && isDataType(leftParts[0])) {
-                
-                return parseDeclaration(line);
-            }
-            
-            val* leftVal = new val();
-            leftVal->name = leftStr;
-            leftVal->val = leftStr;
-            expr->leftOpr = leftVal;
-            
-            expr->operation = "=";
-            
-            val* rightVal = new val();
-            rightVal->name = rightStr;
-            rightVal->val = rightStr;
-            expr->right = rightVal;
-        }
-        
+
+        string clean = line;
+        if (clean.back() == ';') clean.pop_back();
+
+        size_t eq = clean.find('=');
+        if (eq == string::npos) return expr;
+
+        expr->leftOpr = new val();
+        expr->leftOpr->name = trim(clean.substr(0, eq));
+
+        expr->operation = "=";
+
+        expr->right = new val();
+        expr->right->name = trim(clean.substr(eq + 1));
+
         return expr;
     }
-    
+
     Node* parseReturn(const string& line) {
-        Node* returnNode = new Node(currentLine, "Return");
-        
-        size_t returnPos = line.find("return");
-        if (returnPos != string::npos) {
-            string value = trim(line.substr(returnPos + 6));
-            if (value.back() == ';') value.pop_back();
-            returnNode->name = "Return(" + value + ")";
+        Node* r = new Node(currentLine, "Return");
+        string val = trim(line.substr(6));
+        if (!val.empty() && val.back() == ';') val.pop_back();
+        r->name = "returned (" + val + ")";
+        return r;
+    }
+
+    IfStatement* parseIf(istringstream& stream, string line) {
+        IfStatement* ifs = new IfStatement(currentLine);
+
+        size_t l = line.find('('), r = line.find(')');
+        ifs->condition = line.substr(l + 1, r - l - 1);
+
+        ifs->thenBody = parseBlock(stream);
+
+        stream >> ws;
+        streampos pos = stream.tellg();
+        string next;
+        getline(stream, next);
+        next = trim(next);
+
+        if (next.find("else") == 0) {
+            ifs->elseBody = parseBlock(stream);
+        } else {
+            stream.seekg(pos);
         }
-        
-        return returnNode;
+        return ifs;
+    }
+
+    ForLoop* parseFor(istringstream& stream, string line) {
+        ForLoop* loop = new ForLoop(currentLine);
+
+        size_t l = line.find('('), r = line.find(')');
+        auto parts = split(line.substr(l + 1, r - l - 1), ';');
+
+        loop->init = parts[0];
+        loop->condition = parts[1];
+        loop->increment = parts[2];
+
+        loop->body = parseBlock(stream);
+        return loop;
+    }
+
+    /* ---------- Block Parser ---------- */
+
+    Node* parseBlock(istringstream& stream) {
+        FunctionBody* body = new FunctionBody(currentLine);
+        string line;
+        int braces = 0;
+
+        while (getline(stream, line)) {
+            currentLine++;
+            line = trim(line);
+
+            if (line == "{") { braces++; continue; }
+            if (line == "}") {
+                if (--braces < 0) break;
+                continue;
+            }
+
+            Node* stmt = nullptr;
+
+            if (line.find("if") == 0)
+                stmt = parseIf(stream, line);
+            else if (line.find("for") == 0)
+                stmt = parseFor(stream, line);
+            else if (line.find("return") == 0)
+                stmt = parseReturn(line);
+            else if (isDataType(split(line, ' ')[0]))
+                stmt = parseDeclaration(line);
+            else if (line.find('=') != string::npos)
+                stmt = parseExpression(line);
+
+            if (stmt)
+                body->statements.push_back(stmt);
+        }
+
+        if (!body->statements.empty()) {
+            body->root = body->statements[0];
+            Node* cur = body->root;
+            for (size_t i = 1; i < body->statements.size(); i++) {
+                cur->child = body->statements[i];
+                cur = body->statements[i];
+            }
+        }
+        return body;
+    }
+
+    /* ---------- Function Parser ---------- */
+
+    FunctionDef* parseFunction(istringstream& stream, string header) {
+        FunctionDef* fn = new FunctionDef(currentLine);
+
+        auto parts = split(header, ' ');
+        fn->returnType = parts[0];
+        fn->funcName = parts[1].substr(0, parts[1].find('('));
+
+        fn->body = parseBlock(stream);
+        return fn;
+    }
+    void printStatementChain(Node* node, string indent, string& out) {
+        while (node) {
+            out += indent + "| - ";
+
+            if (node->type == "Declaration") {
+                Declaration* d = (Declaration*)node;
+                if(!d){
+                    out += "\n";
+                    node = node->child;
+                }
+                out += "Declaration(";
+                for (size_t i = 0; i < d->vars.size(); i++) {
+                    out += d->vars[i].name;
+                    if (d->vars[i].val != "uninitialized")
+                        out += " = " + d->vars[i].val;
+                    if (i + 1 < d->vars.size()) out += ", ";
+                }
+                out += ")";
+            }
+            else if (node->type == "Expression") {
+                Expression* e = (Expression*)node;
+                out += "Expression(left: variable: '" + e->leftOpr->name +
+                       "', opr: '" + e->operation +
+                       "', right: variable: '" + e->right->name + "')";
+            }
+            else if (node->type == "Return") {
+                out += node->name;  // already "returned (x)"
+            }
+            else if (node->type == "IfStatement") {
+                IfStatement* i = (IfStatement*)node;
+                out += "If(condition: " + i->condition + ")\n";
+
+                out += indent + "   | - Then\n";
+                printStatementChain(i->thenBody->child, indent + "   |   ", out);
+
+                if (i->elseBody) {
+                    out += indent + "   | - Else\n";
+                    printStatementChain(i->elseBody->child, indent + "   |   ", out);
+                }
+            }
+            else if (node->type == "ForLoop") {
+                ForLoop* f = (ForLoop*)node;
+                out += "For(init: " + f->init +
+                       ", condition: " + f->condition +
+                       ", increment: " + f->increment + ")\n";
+
+                printStatementChain(f->body->child, indent + "   |   ", out);
+            }
+
+            out += "\n";
+            node = node->child;
+        }
     }
     Node* Parse(const string& code) {
         istringstream stream(code);
         string line;
-        
         while (getline(stream, line)) {
             currentLine++;
             line = trim(line);
-            
-            if (line.empty() || line.find("#include") == 0 || 
-                line.find("using namespace") == 0) {
-                continue;
-            }
-            
-            if (line.find("int main()") == 0) {
-                FunctionDef* mainFunc = new FunctionDef(currentLine);
-                mainFunc->returnType = "int";
-                mainFunc->funcName = "main";
-                
-                FunctionBody* body = new FunctionBody(currentLine);
-                mainFunc->body = body;
-                
-                int braceCount = 0;
-                size_t bracePos = line.find('{');
-                if (bracePos != string::npos) {
-                    braceCount = 1;
-                } else {
-                    getline(stream, line);
-                    currentLine++;
-                    line = trim(line);
-                    if (line == "{") braceCount = 1;
-                }
-                
-                while (braceCount > 0 && getline(stream, line)) {
-                    currentLine++;
-                    line = trim(line);
-                    
-                    if (line.empty()) continue;
-                    
-                    if (line == "{") {
-                        braceCount++;
-                        continue;
-                    } else if (line == "}") {
-                        braceCount--;
-                        if (braceCount == 0) break;
-                        continue;
-                    }
-                    
-                    Node* stmtNode = nullptr;
-                    
-                    if (line.find("int ") == 0) {
-                        stmtNode = parseDeclaration(line);
-                    } else if (line.find("return") == 0) {
-                        stmtNode = parseReturn(line);
-                    } else if (line.find('=') != string::npos) {
-                        stmtNode = parseExpression(line);
-                    }
-                    
-                    if (stmtNode) {
-                        body->statements.push_back(stmtNode);
-                    }
-                }
-                
-                if (!body->statements.empty()) {
-                    body->root = body->statements[0];
-                    Node* current = body->root;
-                    for (size_t i = 1; i < body->statements.size(); i++) {
-                        current->child = body->statements[i];
-                        current = body->statements[i];
-                    }
-                }
-                
-                root = mainFunc;
-                return root;
+            if (line.empty()) continue;
+            auto parts = split(line, ' ');
+            if (parts.size() >= 2 && isDataType(parts[0]) && line.find('(') != string::npos) {
+                root->functions.push_back(parseFunction(stream, line));
             }
         }
-        
-        return nullptr;
+        return root;
     }
 
 public:
-    Parser(): root{nullptr}, currentLine{1}{}
+    Parser() : root(new Program()), currentLine(0) {}
+
     
     string parseTree(const string& code) {
-        string res;
-        root = Parse(code);
-        if (!root) {
-            res+= "No AST generated.\n";
-            return res;
+        string out;
+        Node* ast = Parse(code);
+
+        if (!ast) {
+            return "No AST generated.\n";
         }
-        
-        res+= "Root\n";
-        res+= "|\n";
-        
-        if (root->type == "FunctionDef") {
-            FunctionDef* func = (FunctionDef*)root;
-            
-            res+= "|- Function definition";
-            res+= "   |";
-            res=res+ "   | - Name(\"" + func->funcName + "\")\n";
-            res=res+ "   | - ReturnType(\"" + func->returnType + "\")\n";
-            res+= "   | - Function Body";
-            
+
+        Program* program = (Program*)ast;
+
+        out += "Root\n";
+        out += "|\n";
+
+        for (auto* func : program->functions) {
+            out += "|- Function definition\n";
+            out += "   |\n";
+            out += "   | - Name(\"" + func->funcName + "\")\n";
+            out += "   | - returnType(\"" + func->returnType + "\")\n";
+            out += "   | - Function Body\n";
+            out += "       |\n";
+
             if (func->body && func->body->type == "FunctionBody") {
                 FunctionBody* body = (FunctionBody*)func->body;
-                
-                res+="       |\n";
-                
-                Node* current = body->root;
-                while (current) {
-                    res+="       | - \n";
-                    
-                    if (current->type == "Declaration") {
-                        Declaration* decl = (Declaration*)current;
-                        res+= "Declaration(\n";
-                        for (size_t i = 0; i < decl->vars.size(); i++) {
-                            res+= decl->vars[i].name;
-                            if (decl->vars[i].val != "uninitialized") {
-                                res=res+ " = " + decl->vars[i].val;
-                            }
-                            if (i != decl->vars.size() - 1) res+= ", ";
-                        }
-                        res+= ")";
-                    }
-                    else if (current->type == "Expression") {
-                        Expression* expr = (Expression*)current;
-                        if (expr->leftOpr && expr->right) {
-                            if (expr->leftOpr->dataType != "") {
-                                res=res+ "Declaration(" + expr->leftOpr->name + "), ";
-                            } else {
-                                res=res+ "variable: '" + expr->leftOpr->name + "', ";
-                            }
-                            res=res+ "opr: '" + expr->operation + "', ";
-                            res=res+ "right: variable: '" + expr->right->name + "'";
-                        }
-                    }
-                    else if (current->type == "Return") {
-                        res=res+ "returned (" + current->name.substr(7, current->name.size()-8) + ")";
-                    }
-                    
-                    res+= "\n";
-                    current = current->child;
-                }
+                if(body)
+                    printStatementChain(body->root, "       ", out);
             }
         }
-        return res;
+
+        return out;
     }
+
 };

@@ -127,4 +127,34 @@ struct FunctionBody: Node{
         root = nullptr;
     }
 };
+struct IfStatement : Node {
+    string condition;
+    Node* thenBody;
+    Node* elseBody;
+
+    IfStatement(int l) : Node(l, "IfStatement") {
+        name = "IfStatement";
+        thenBody = nullptr;
+        elseBody = nullptr;
+    }
+};
+
+struct ForLoop : Node {
+    string init;
+    string condition;
+    string increment;
+    Node* body;
+
+    ForLoop(int l) : Node(l, "ForLoop") {
+        name = "ForLoop";
+        body = nullptr;
+    }
+};
+
+struct Program : Node {
+    vector<FunctionDef*> functions;
+    Program() : Node(0, "Program") {
+        name = "Program";
+    }
+};
 #endif

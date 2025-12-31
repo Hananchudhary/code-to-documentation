@@ -3,6 +3,7 @@
 #include<iostream>
 #include<vector>
 #include<string>
+#include"stack.h"
 using namespace std;
 template<typename T>
 class AVLNode {
@@ -189,10 +190,29 @@ private:
         return node;
     }
     
-    AVLNode<T>* searchNode(AVLNode<T>* node, const std::string& key) {
-        if (!node || node->key == key) return node;
-        if (strcmp(&key[0], node->key)<0) return searchNode(node->left, key);
-        return searchNode(node->right, key);
+    AVLNode<T>* searchNode(AVLNode<T>* root, const std::string& key)
+    {
+        if (!root) return nullptr;
+
+        Stack<AVLNode<T>*> st;
+        st.push(root);
+
+        while (!st.empty()) {
+            AVLNode<T>* node = st.top();
+            st.pop();
+
+            if (!node) continue;
+
+            if (node->key == key)
+                return node;
+
+            if (key < node->key)
+                st.push(node->left);
+            else
+                st.push(node->right);
+        }
+
+        return nullptr;
     }
     
     void collectAll(AVLNode<T>* node, std::vector<T>& result) {

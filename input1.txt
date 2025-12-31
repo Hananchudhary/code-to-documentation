@@ -1,8 +1,10 @@
-#include<iostream>
-#include<vector>
-using namespace std;
-int main(){
-    int a = 10, b = 20;
-    a=b;
-    return 0;
+int main() {
+    int sum = 0;
+    int i;
+    for (i = 0; i < 5; i = i + 1) {
+        if (i == 2) {
+            sum = sum + i;
+        }
+    }
+    return sum;
 }

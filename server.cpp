@@ -107,7 +107,7 @@ json handle_request(const json& req) {
         int err = manager.generateDoc(filename, username, data);
         if (err != 0)
             return make_error_response(operation, err, "Document generation failed");
-
+        cout << data << endl;
         HuffmanCoding hf;
         auto freq = countfreq(data);
         string encoded = hf.encode(data);
@@ -152,7 +152,7 @@ json handle_request(const json& req) {
         if (err == 0) {
             json res;
             res["result_data"] = k;
-            return make_success_response(operation);
+            return make_success_response(operation, res);
         }
 
         return make_error_response(operation, err, "File sharing failed");
@@ -162,7 +162,7 @@ json handle_request(const json& req) {
         string key = params["key"];
         string data;
 
-        int err = manager.ReadSharedFile(username, key);
+        int err = manager.ReadSharedFile(key, username, data);
 
         if (err == 0) {
             json res;
@@ -242,7 +242,6 @@ int main() {
         req_q.try_enqueue(*r);
         // close(client_fd);
     }
-
     close(server_fd);
     return 0;
 }
